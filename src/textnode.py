@@ -2,12 +2,12 @@ from enum import Enum
 from htmlnode import LeafNode
 
 class TextType(Enum):
-    TEXT = "text"
-    BOLD = "bold"
-    ITALIC = "italic"
-    CODE = "code"
-    LINK = "link"
-    IMAGE = "image"
+    TEXT = None
+    BOLD = "**"
+    ITALIC = "_"
+    CODE = "`"
+    LINK = "[]()"
+    IMAGE = "![]()"
 
 class TextNode:
     def __init__(self, text, text_type, url=None):
@@ -36,3 +36,31 @@ def text_node_to_html_node(text_node):
         return LeafNode("img", "", {"src": text_node.url, "alt": text_node.text})
     else:
         raise Exception("no supported TextType")
+    
+def split_nodes_delimiter(old_nodes, delimiter, text_type):
+    new_nodes = []
+    if text_type in TextType and delimiter == TextType(text_type):
+        for nodes in old_nodes:
+            if nodes.text.count(delimiter) % 2 == 0:
+                if nodes.text_type == TextType.TEXT:
+                    new_nodes.append(nodes)
+                else:
+                    text_cache = nodes.text
+                    text_segment = []
+                    while delimiter in text_cache:
+                        start_index = text_cache.find(delimiter)
+                        if start_index > 0:
+                            text_segment.append((text_cache[:start_index], TextType.TEXT))
+                        end_index = text_cache.find(delimiter, start_index + len(delimiter))
+                        text_segment.append(text_cache[start_index + len(delimiter):end_index], text_type)
+                        text_segment.append(text_cache[end_index + len(delimiter):])
+                    if text_cache:
+                        text_segment.append((text_cache, text_type))
+                    for text, node_type in text_segment:
+                        new_nodes.append(TextNode(text, node_type))
+                return new_nodes
+            else:
+                raise ValueError("Delimiter not closed") 
+    else:
+        raise ValueError("Delimiter mismatch")
+    
